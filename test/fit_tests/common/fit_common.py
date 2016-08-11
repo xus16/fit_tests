@@ -280,7 +280,7 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
     payload_print = []
     try:
         json.dumps(rest_payload)
-    except ValueError:
+    except:
         payload_print = []
     else:
         payload_print = json.dumps(rest_payload, sort_keys=True, indent=4,)
