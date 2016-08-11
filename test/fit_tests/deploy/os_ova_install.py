@@ -77,6 +77,7 @@ class os_ova_install(fit_common.unittest.TestCase):
                        "export editcmd=\\\'/\\\'$editline\\\'\/ c\\\ethernet0.address = \\\"" + fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['ovamac'] + "\\\"\\\';" \
                        "sed -i \\\"$editcmd\\\" $file;" \
                        "sed -i \\\'/ethernet0.addressType = \\\"vpx\\\"/ c\\\ethernet0.addressType = \\\"static\\\"\\\' $file;" \
+                       "sed -i \\\'/ethernet0.addressType = \\\"generated\\\"/ c\\\ethernet0.addressType = \\\"static\\\"\\\' $file;" \
                        "done;" \
                        "sleep 5;" \
                        "export vmidstring=`vim-cmd vmsvc/getallvms |grep ora-stack-" + fit_common.ARGS_LIST['stack'] + "`;" \
