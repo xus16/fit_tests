@@ -161,7 +161,7 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
     @fit_common.unittest.skipUnless('centos65' in fit_common.GLOBAL_CONFIG['repos']['os'], "Skipping Centos 6.5 KVM")
     def test_bootstrap_centos65_kvm(self):
         if fit_common.VERBOSITY >= 2:
-            print 'Running CentOS 7 KVM bootstrap.'
+            print 'Running CentOS 6.5 KVM bootstrap.'
         nodehostname = 'centos65'
         payload_data = {"osName": "CentOS+KVM",
                         "version": "6.5",
