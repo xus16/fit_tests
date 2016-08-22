@@ -19,6 +19,7 @@ DRYRUN=${DRYRUN-false}
 INSTALL=${INSTALL-true}
 STACK_NUMBER=${STACK_NUMBER-}
 RELEASE_NAME=${RELEASE_NAME-onrack-devel}
+OVA-NAME=${OVA_NAME-None}
 TEST_SCRIPT=${TEST_SCRIPT-autotest/run_onrack_smoke_test.py}
 TEST_RUN="smoketest"
 
