@@ -397,20 +397,22 @@ def get_bmc_ips():
     # If we have already done this, use that list
     if len(BMC_LIST) == 0:
         ipscan = remote_shell('arp')['stdout'].split()
-
         for ipaddr in ipscan:
             if ipaddr[0:3] == "172" and remote_shell('ping -c 1 -w 5 ' + ipaddr)['exitcode'] == 0:
                 # iterate through all known IPMI users
                 for item in GLOBAL_CONFIG['credentials']['bmc']:
-                    return_code = remote_shell('ipmitool -I lanplus -H ' + ipaddr + ' -U ' + item['username'] \
-                                               + ' -P ' + item['password'] + ' -R 1 -N 3 dcmi get_mc_id_string')
-                    bmc_info = {"ip": ipaddr, "user": item['username'], "pw": item['password']}
-                    if return_code['exitcode'] == 0 and return_code['stdout'] not in idlist:
-                        idlist.append(return_code['stdout'])
-                        BMC_LIST.append(bmc_info)
-                        break
-                    else:
-                        BMC_LIST.append(bmc_info)
+                    ipmicheck = remote_shell('ipmitool -I lanplus -H ' + ipaddr + ' -U ' + item['username'] \
+                                               + ' -P ' + item['password'] + ' -R 1 -N 3 chassis power status')
+                    if ipmicheck['exitcode'] == 0:
+                        return_code = remote_shell('ipmitool -I lanplus -H ' + ipaddr + ' -U ' + item['username'] \
+                                                   + ' -P ' + item['password'] + ' -R 1 -N 3 dcmi get_mc_id_string')
+                        bmc_info = {"ip": ipaddr, "user": item['username'], "pw": item['password']}
+                        if return_code['exitcode'] == 0 and return_code['stdout'] not in idlist:
+                            idlist.append(return_code['stdout'])
+                            BMC_LIST.append(bmc_info)
+                            break
+                        else:
+                            BMC_LIST.append(bmc_info)
         if VERBOSITY >= 6:
             print "get_bmc_ips: "
             print "**** BMC IP node count =", len(BMC_LIST), "****"
