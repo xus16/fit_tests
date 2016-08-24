@@ -162,7 +162,7 @@ def remote_shell(shell_cmd, expect_receive="", expect_send="", timeout=300, addr
     # if localhost just run the command local
     if ARGS_LIST['ora'] == 'localhost':
         (command_output, exitstatus) = \
-            pexpect.run("sudo bash -c \\\"" + shell_cmd + "\\\"",
+            pexpect.run("sudo bash -c \"" + shell_cmd + "\"",
                         withexitstatus=1,
                         events={"assword": password + "\n"},
                         timeout=timeout, logfile=logfile_redirect)
