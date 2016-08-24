@@ -404,11 +404,13 @@ def get_bmc_ips():
                 for item in GLOBAL_CONFIG['credentials']['bmc']:
                     return_code = remote_shell('ipmitool -I lanplus -H ' + ipaddr + ' -U ' + item['username'] \
                                                + ' -P ' + item['password'] + ' -R 1 -N 3 dcmi get_mc_id_string')
+                    bmc_info = {"ip": ipaddr, "user": item['username'], "pw": item['password']}
                     if return_code['exitcode'] == 0 and return_code['stdout'] not in idlist:
-                        bmc_info = {"ip": ipaddr, "user": item['username'], "pw": item['password']}
                         idlist.append(return_code['stdout'])
                         BMC_LIST.append(bmc_info)
                         break
+                    else:
+                        BMC_LIST.append(bmc_info)
         if VERBOSITY >= 6:
             print "get_bmc_ips: "
             print "**** BMC IP node count =", len(BMC_LIST), "****"
