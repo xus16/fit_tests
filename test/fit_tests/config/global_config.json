@@ -48,7 +48,17 @@
         "username": "admn",
         "password": "admn"
       }
-    ]
+    ],
+    "default_api_creds": [
+      {
+         "admin_user": "admin",
+         "admin_pass": "admin123"
+      },
+      {
+         "readonly_user": "readonly",
+         "readonly_pass": "readonly123"
+      }
+   ]
   },
   "snmp":{
     "community": "onrack"
