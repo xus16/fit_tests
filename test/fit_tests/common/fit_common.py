@@ -652,4 +652,9 @@ def get_auth_token(role=None, **endpoint):
         return token
 
     dic = json.loads(result.getvalue())
-    return dic['token']
+    if type(dic) is dict:
+        try:
+            token = dic['token']
+        except KeyError:
+            pass
+    return token
