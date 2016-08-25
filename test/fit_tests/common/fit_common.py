@@ -595,15 +595,16 @@ def get_auth_token(role=None, **endpoint):
     :return: string = {'stdout': str:ouput, 'exitcode': return code}
     '''
     # override obtaining credentials from GLOBAL_CONFIG, rather provide endpoint data
+    token = None
     if endpoint:
         if {'username', 'password', 'port'} <= set(endpoint):
             username = endpoint['username']
             password = endpoint['password']
             port = endpoint['port']
         else:
-            return ''
+            return token
     else:
-        port = 8443
+        port = GLOBAL_CONFIG['ports']['https']
         if role is None or role in map(str.lower, ['Admin', 'Administrator']):
             username = GLOBAL_CONFIG['credentials']['default_api_creds'][0]['admin_user'] # OnRack default admin usr
             password = GLOBAL_CONFIG['credentials']['default_api_creds'][0]['admin_pass'] # OnRack default admin pwd
@@ -611,7 +612,7 @@ def get_auth_token(role=None, **endpoint):
             username = GLOBAL_CONFIG['credentials']['default_api_creds'][1]['readonly_user'] # OnRack default readonly usr
             password = GLOBAL_CONFIG['credentials']['default_api_creds'][1]['readonly_pass'] # OnRack default readonly pwd
         else:
-            return ''
+            return token
 
     if VERBOSITY >= 3:
         print "retrieving authentication token using credentials and port: {{{0}, {1}, port={2}}}". \
@@ -642,13 +643,13 @@ def get_auth_token(role=None, **endpoint):
     except pycurl.error, error:
         errno, errstr = error
         print "ORA connectivity error occurred: ", errstr
-        return ''
+        return token
 
     # credential issue
     if c.getinfo(pycurl.HTTP_CODE) in [400, 401]:
         if VERBOSITY >= 3:
             print "bad username or password, check GLOBAL_CONFIG or param endpoint values"
-        return  ''
+        return token
 
     dic = json.loads(result.getvalue())
     return dic['token']
