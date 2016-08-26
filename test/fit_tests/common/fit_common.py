@@ -268,11 +268,9 @@ def rackhdapi(url_cmd, action='get', payload=[], timeout=None, rest_headers={}):
     if AUTH_TOKEN == "None":
         get_auth_token()
     if API_PROTOCOL == "None":
-        try:
-            if API_PORT == "None":
-                API_PORT = GLOBAL_CONFIG['ports']['http']
-            restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/")
-        except:
+        if API_PORT == "None":
+            API_PORT = GLOBAL_CONFIG['ports']['http']
+        if restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/", rest_timeout=5)['status'] == 0:
             API_PROTOCOL = 'https'
             API_PORT = GLOBAL_CONFIG['ports']['https']
         else:
