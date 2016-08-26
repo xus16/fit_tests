@@ -24,7 +24,7 @@ class rackhd20_api_users(fit_common.unittest.TestCase):
     def test_api_20_users_post_get_delete(self):
         # test incomplete, needs authorization code
         payload = {
-                      "username": "admin",
+                      "username": "readonly",
                       "password": "1234567",
                       "role": "ReadOnly"
                     }
