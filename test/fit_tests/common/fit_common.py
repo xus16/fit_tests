@@ -20,6 +20,9 @@ import re
 import requests
 import pexpect
 import shutil
+import pycurl
+import StringIO
+import pprint
 
 # Globals
 
@@ -581,3 +584,77 @@ def run_nose(nosepath):
         exitcode += _noserunner(nosepath)
     return exitcode
 
+def get_auth_token(role=None, **endpoint):
+    '''
+    Returns authentication token using default credentials in the global config.
+    Obtaining the Admin token is the default, however, user can request the default ReadOnly as well as
+    user custom username, password and port via parameters.
+
+    :param role
+    :param endpoint dict with keys 'username', 'password' and 'port'
+    :return: string = {'stdout': str:ouput, 'exitcode': return code}
+    '''
+    # override obtaining credentials from GLOBAL_CONFIG, rather provide endpoint data
+    token = None
+    if endpoint:
+        if {'username', 'password', 'port'} <= set(endpoint):
+            username = endpoint['username']
+            password = endpoint['password']
+            port = endpoint['port']
+        else:
+            return token
+    else:
+        port = GLOBAL_CONFIG['ports']['https']
+        if role is None or role in map(str.lower, ['Admin', 'Administrator']):
+            username = GLOBAL_CONFIG['credentials']['default_api_creds'][0]['admin_user'] # OnRack default admin usr
+            password = GLOBAL_CONFIG['credentials']['default_api_creds'][0]['admin_pass'] # OnRack default admin pwd
+        elif role in map(str.lower, ['ReadOnly']):
+            username = GLOBAL_CONFIG['credentials']['default_api_creds'][1]['readonly_user'] # OnRack default readonly usr
+            password = GLOBAL_CONFIG['credentials']['default_api_creds'][1]['readonly_pass'] # OnRack default readonly pwd
+        else:
+            return token
+
+    if VERBOSITY >= 3:
+        print "retrieving authentication token using credentials and port: {{{0}, {1}, port={2}}}". \
+            format(username, password, port)
+
+    login_url = "https://{0}:{1}/login".format(ARGS_LIST['ora'], port)
+    login_payload = json.dumps({'username': username, 'password': password})
+    result = StringIO.StringIO()
+
+    c = pycurl.Curl()
+    c.setopt(pycurl.URL, login_url)
+    c.setopt(pycurl.VERBOSE, 0)
+    if VERBOSITY >= 9: c.setopt(pycurl.VERBOSE, 5)
+
+    # currently ignoring SSL certificate validation, ci-build ORA's currently do not have certs
+    c.setopt(pycurl.SSL_VERIFYPEER, False)
+    c.setopt(pycurl.SSL_VERIFYHOST, False)
+
+    c.setopt(pycurl.HTTPHEADER, ['Content-Type: application/json'])
+    c.setopt(pycurl.POST, 1)
+    c.setopt(pycurl.CONNECTTIMEOUT, 5)
+    c.setopt(pycurl.TIMEOUT, 8)
+    c.setopt(pycurl.POSTFIELDS, login_payload)
+    c.setopt(pycurl.WRITEDATA, result)
+
+    try:
+        c.perform()
+    except pycurl.error, error:
+        errno, errstr = error
+        print "ORA connectivity error occurred: ", errstr
+        return token
+
+    # credential issue
+    if c.getinfo(pycurl.HTTP_CODE) in [400, 401]:
+        if VERBOSITY >= 3:
+            print "bad username or password, check GLOBAL_CONFIG or param endpoint values"
+        return token
+
+    dic = json.loads(result.getvalue())
+    if type(dic) is dict:
+        try:
+            token = dic['token']
+        except KeyError:
+            pass
+    return token
