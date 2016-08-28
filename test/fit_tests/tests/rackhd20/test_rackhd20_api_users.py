@@ -33,7 +33,7 @@ class rackhd20_api_users(fit_common.unittest.TestCase):
         api_data = fit_common.rackhdapi('/api/2.0/users')
         self.assertEqual(api_data['status'], 200, 'Incorrect HTTP return code, expected 200, got:' + str(api_data['status']))
         api_data = fit_common.rackhdapi('/api/2.0/users/readonly', action="delete")
-        self.assertEqual(api_data['status'], 204, 'Incorrect HTTP return code, expected 201, got:' + str(api_data['status']))
+        self.assertIn(api_data['status'], [204, 404], 'Incorrect HTTP return code, expected 201, got:' + str(api_data['status']))
 
 if __name__ == '__main__':
     fit_common.unittest.main()

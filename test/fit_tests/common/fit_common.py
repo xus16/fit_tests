@@ -245,7 +245,7 @@ def get_auth_token():
         AUTH_TOKEN = "Unavailable"
         return False
 
-def rackhdapi(url_cmd, action='get', payload=[], timeout=None, rest_headers={}):
+def rackhdapi(url_cmd, action='get', payload=[], timeout=None, headers={}):
     '''
     This routine will build URL for RackHD API, enable port, execute, and return to previous state
     Example: fit_common.rackhdapi('/api/current/nodes') - simple 'get' command
@@ -255,6 +255,7 @@ def rackhdapi(url_cmd, action='get', payload=[], timeout=None, rest_headers={}):
     :param action: rest action (get/put/post/delete)
     :param payload: rest payload
     :param timeout: rest timeout
+    :param headers: rest_headers
 
     :return: {'json':result_data.json(), 'text':result_data.text,
                 'status':result_data.status_code,
@@ -278,7 +279,7 @@ def rackhdapi(url_cmd, action='get', payload=[], timeout=None, rest_headers={}):
             API_PORT = GLOBAL_CONFIG['ports']['http']
 
     return restful(API_PROTOCOL + "://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + url_cmd,
-                       rest_action=action, rest_payload=payload, rest_timeout=timeout, rest_headers=rest_headers)
+                       rest_action=action, rest_payload=payload, rest_timeout=timeout, rest_headers=headers)
 
 
 def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, sslverify=False, rest_headers={}):
@@ -316,10 +317,11 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
         if VERBOSITY >= 9 and rest_payload != []:
             print "restful: Payload =\n", payload_print
 
-    # Update passed in headers with Content-type
-    rest_headers.update({"Content-Type": "application/json"})
+    # Update passed in headers with Content-typei
+    if "Content-Type" not in rest_headers:
+        rest_headers.update({"Content-Type": "application/json"})
     # If AUTH_TOKEN is set, add to header
-    if AUTH_TOKEN != "None" and AUTH_TOKEN != "Unavailable":
+    if AUTH_TOKEN != "None" and AUTH_TOKEN != "Unavailable" and "authorization" not in rest_headers:
         rest_headers.update({"authorization": "JWT " + AUTH_TOKEN})
     # Perform rest request
     try:
