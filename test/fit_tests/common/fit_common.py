@@ -317,9 +317,7 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
         if VERBOSITY >= 9 and rest_payload != []:
             print "restful: Payload =\n", payload_print
 
-    # Update passed in headers with Content-typei
-    if "Content-Type" not in rest_headers:
-        rest_headers.update({"Content-Type": "application/json"})
+    rest_headers.update({"Content-Type": "application/json"})
     # If AUTH_TOKEN is set, add to header
     if AUTH_TOKEN != "None" and AUTH_TOKEN != "Unavailable" and "authorization" not in rest_headers:
         rest_headers.update({"authorization": "JWT " + AUTH_TOKEN})
