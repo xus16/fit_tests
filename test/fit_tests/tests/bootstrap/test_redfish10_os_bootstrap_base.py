@@ -71,8 +71,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id'], retries=80), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
@@ -98,8 +98,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id'], retries=80), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
@@ -125,8 +125,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id']), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
@@ -153,8 +153,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id']), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
@@ -180,8 +180,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id']), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
@@ -208,8 +208,8 @@ class os_bootstrap_base(fit_common.unittest.TestCase):
                                             + NODE
                                             + '/Actions/RackHD.BootImage',
                                             action='post', payload=payload_data)
-        self.assertEqual(result['status'], 201,
-                         'Was expecting code 201. Got ' + str(result['status']))
+        self.assertEqual(result['status'], 202,
+                         'Was expecting code 202. Got ' + str(result['status']))
         self.assertEqual(wait_for_task_complete(result['json']['@odata.id']), True,
                          'TaskID ' + result['json']['@odata.id'] + ' not successfully completed.')
 
