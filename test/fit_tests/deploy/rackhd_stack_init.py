@@ -76,7 +76,6 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
                          + str(api_data['status']))
 
-
     def test03_set_auth_user(self):
         print '**** Installing default admin user'
         fit_common.remote_shell('rm auth.json')
@@ -108,13 +107,9 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
     def test05_discover_control_switch_node(self):
         print "**** Creating control switch node."
         payload = {
-                    "type":"switch",
-                    "name":"Control",
-                    "autoDiscover":True,
-                    "snmpSettings":{
-                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['control'],
-                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
-                    }
+                    "type": "switch",
+                    "name": "Control",
+                    "autoDiscover": "true",
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -125,13 +120,9 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
     def test06_discover_data_switch_node(self):
         print "**** Creating data switch node."
         payload = {
-                    "type":"switch",
-                    "name":"Data",
-                    "autoDiscover":True,
-                    "snmpSettings":{
-                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['data'],
-                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
-                    }
+                    "type": "switch",
+                    "name": "Data",
+                    "autoDiscover": "true",
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -142,13 +133,9 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
     def test07_discover_pdu_node(self):
         print "**** Creating PDU node."
         payload = {
-                    "type":"pdu",
-                    "name":"PDU",
-                    "autoDiscover":True,
-                    "snmpSettings":{
-                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['pdu'],
-                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
-                    }
+                    "type": "pdu",
+                    "name": "PDU",
+                    "autoDiscover": "true",
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes/", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -209,7 +196,7 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
                 "friendlyName": "IPMI" + str(count),
                 "injectableName": 'Graph.Obm.Ipmi.CreateSettings' + str(count),
                 "options": {
-                    "obm-ipmi-task":{
+                    "obm-ipmi-task": {
                         "user": creds["username"],
                         "password": creds["password"]
                     }
@@ -255,7 +242,7 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
         self.assertTrue(succeeded, "OBM settings failed.")
 
     @fit_common.unittest.skipUnless("bmc" in fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']],"")
-    @fit_common.unittest.skip("Skipping 'test10_add_management_server' due to ODR-803")
+    @fit_common.unittest.skip("Skipping 'test10_add_management_server' code incomplete")
     def test11_add_management_server(self):
         print "**** Creating management server."
         usr = ""
@@ -270,8 +257,8 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
         # create management node using these creds
         payload = {
                     "name": "Management Server",
-                    "identifiers": fit_common.ARGS_LIST['bmc'],
-                    "type": "compute",
+                    "type": "mgmt",
+                    "autoDiscover": "true",
                     "ipmi-obm-service": {
                         "host": fit_common.ARGS_LIST['bmc'],
                         "user": usr,
