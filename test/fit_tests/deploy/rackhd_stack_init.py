@@ -84,7 +84,8 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
         auth_json.close()
         fit_common.scp_file_to_ora('auth.json')
         rc = fit_common.remote_shell("curl -ks -X POST -H 'Content-Type:application/json' https://localhost:" + str(fit_common.GLOBAL_CONFIG['ports']['https']) + "/api/2.0/users -d @auth.json" )
-        self.assertEqual(rc['exitcode'], 0, "Set auth user failed.")
+        if rc['exitcode'] != 0:
+            print "ALERT: Auth admin user not set! Please manually set the admin user account if https access is desired."
 
     def test04_power_on_nodes(self):
         # This powers on nodes via PDU or, if no PDU, power cycles nodes via IPMI to start discovery
@@ -110,6 +111,10 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
                     "type": "switch",
                     "name": "Control",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['control'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -123,6 +128,10 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
                     "type": "switch",
                     "name": "Data",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['data'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -136,6 +145,10 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
                     "type": "pdu",
                     "name": "PDU",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['pdu'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes/", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '

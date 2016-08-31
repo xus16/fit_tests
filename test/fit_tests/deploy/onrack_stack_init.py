@@ -57,6 +57,10 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     "type": "switch",
                     "name": "Control",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['control'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -70,6 +74,10 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     "type": "switch",
                     "name": "Data",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['data'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
@@ -83,6 +91,10 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     "type": "pdu",
                     "name": "PDU",
                     "autoDiscover": "true",
+                    "snmpSettings":{
+                        "host": fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['pdu'],
+                        "community": fit_common.GLOBAL_CONFIG['snmp']['community'],
+                    }
                     }
         api_data = fit_common.rackhdapi("/api/2.0/nodes", action='post', payload=payload)
         self.assertEqual(api_data['status'], 201, 'Incorrect HTTP return code, expecting 201, got '
