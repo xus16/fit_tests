@@ -277,12 +277,12 @@ def rackhdapi(url_cmd, action='get', payload=[], timeout=None, headers={}):
     if API_PROTOCOL == "None":
         if API_PORT == "None":
             API_PORT = str(GLOBAL_CONFIG['ports']['http'])
-        if restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/", rest_timeout=5)['status'] != 200:
-            API_PROTOCOL = 'http'
-            API_PORT = str(GLOBAL_CONFIG['ports']['http'])
-        else:
+        if restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/", rest_timeout=5)['status'] == 0:
             API_PROTOCOL = 'https'
             API_PORT = str(GLOBAL_CONFIG['ports']['https'])
+        else:
+            API_PROTOCOL = 'http'
+            API_PORT = str(GLOBAL_CONFIG['ports']['http'])
 
     # Retrieve authentication token for the session
     if AUTH_TOKEN == "None":
