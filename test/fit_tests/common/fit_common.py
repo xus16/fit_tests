@@ -587,76 +587,83 @@ def cancel_active_workflows(nodeid):
     return exitstatus
 
 def apply_obm_settings():
-       # install OBM credentials via workflows
-        count = 0
-        for creds in GLOBAL_CONFIG['credentials']['bmc']:
-            # greate graph for setting OBM credentials with shared mgt port
-            payload = \
-            {
-                "friendlyName": "SHARED.IPMI" + str(count),
-                "injectableName": 'Graph.Obm.Ipmi.CreateSettings.SHARED' + str(count),
-                "options": {
-                    "obm-ipmi-task": {
-                        "user": creds["username"],
-                        "password": creds["password"]
-                    }
-                },
-                "tasks": [
-                    {
-                        "label": "obm-ipmi-task",
-                        "taskName": "Task.Obm.Ipmi.CreateSettings"
-                    }
-            ]
-            }
-            rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
-            payload = \
-            {
-                "friendlyName": "RMM.IPMI" + str(count),
-                "injectableName": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(count),
-                "options": {
-                    "obm-ipmi-task":{
-                        "ipmichannel": "3",
-                        "user": creds["username"],
-                        "password": creds["password"]
-                    }
-                },
-                "tasks": [
-                    {
-                        "label": "obm-ipmi-task",
-                        "taskName": "Task.Obm.Ipmi.CreateSettings"
-                    }
-            ]
-            }
-            rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
-            count += 1
-        # run each OBM credential workflow on each node until success
-        nodelist = node_select()
-        succeeded = True
-        for node in nodelist:
-            for mgmt in ["SHARED","RMM"]:
-                status = ""
-                for num in range(0, count):
-                    taskid = ""
-                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.' + mgmt + str(num)}
-                    cancel_active_workflows(node)
-                    result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
-                    if "instanceId" in result['json']:
-                        taskid = result['json']["instanceId"]
-                    else:
-                        succeeded = False
-                        print "*** Node failed OBM settings workflow:", node
-                    # wait for OBM workflow to complete
-                    for counter in range(0, 20):
+    # install OBM credentials via workflows
+    count = 0
+    for creds in GLOBAL_CONFIG['credentials']['bmc']:
+        # greate graph for setting OBM credentials with shared mgt port
+        payload = \
+        {
+            "friendlyName": "SHARED.IPMI" + str(count),
+            "injectableName": 'Graph.Obm.Ipmi.CreateSettings.SHARED' + str(count),
+            "options": {
+                "obm-ipmi-task": {
+                    "user": creds["username"],
+                    "password": creds["password"]
+                }
+            },
+            "tasks": [
+                {
+                    "label": "obm-ipmi-task",
+                    "taskName": "Task.Obm.Ipmi.CreateSettings"
+                }
+        ]
+        }
+        rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        payload = \
+        {
+            "friendlyName": "RMM.IPMI" + str(count),
+            "injectableName": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(count),
+            "options": {
+                "obm-ipmi-task":{
+                    "ipmichannel": "3",
+                    "user": creds["username"],
+                    "password": creds["password"]
+                }
+            },
+            "tasks": [
+                {
+                    "label": "obm-ipmi-task",
+                    "taskName": "Task.Obm.Ipmi.CreateSettings"
+                }
+        ]
+        }
+        rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        count += 1
+    # run each OBM credential workflow on each node until success
+    nodelist = node_select()
+    succeeded = True
+    failed = []
+    for node in nodelist:
+        for mgmt in ["SHARED","RMM"]:
+            status = ""
+            for num in range(0, count):
+                taskid = ""
+                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.' + mgmt + str(num)}
+                for dummy in range(0, 20):
+                    if check_active_workflows(node):
                         time.sleep(10)
-                        status = rackhdapi("/api/2.0/workflows/" + taskid)['json']
-                        if '_status' in status and status['_status'] != "running" and status != "pending":
-                            break
-                if '_status' in status and status['_status'] == "succeeded":
-                    break
-                if status['_status'] == "failed" and mgmt == "RMM":
+                    else:
+                        break
+                result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
+                if "instanceId" in result['json']:
+                    taskid = result['json']["instanceId"]
+                else:
                     succeeded = False
-                    print "*** Node failed OBM settings workflow:", node
-        return succeeded
+                    print "*** Node failed applying OBM settings:", node
+                # wait for OBM workflow to complete
+                for dummy in range(0, 20):
+                    time.sleep(10)
+                    status = rackhdapi("/api/2.0/workflows/" + taskid)['json']
+                    if '_status' in status and status['_status'] != "running" and status != "pending":
+                        break
+            if '_status' in status and status['_status'] == "succeeded":
+                break
+            if status['_status'] == "failed" and mgmt == "RMM":
+                succeeded = False
+                failed.append(node)
+    if len(failed) > 0:
+        print "**** Failed nodes:", failed
+    return succeeded
 
 def run_nose(nosepath):
     # this routine runs nosetests from wrapper using path spec 'nosepath'
