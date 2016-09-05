@@ -241,7 +241,7 @@ def get_auth_token():
     redfish_login = {"UserName": GLOBAL_CONFIG["api"]["admin_user"], "Password": GLOBAL_CONFIG["api"]["admin_pass"]}
     try:
         restful("https://" + ARGS_LIST['ora'] + ":" + str(API_PORT) +
-                       "/login", rest_action="post", rest_payload=api_login, rest_timeout=5)
+                       "/login", rest_action="post", rest_payload=api_login, rest_timeout=2)
     except:
         AUTH_TOKEN = "Unavailable"
         return False
@@ -286,7 +286,7 @@ def rackhdapi(url_cmd, action='get', payload=[], timeout=None, headers={}):
     if API_PROTOCOL == "None":
         if API_PORT == "None":
             API_PORT = str(GLOBAL_CONFIG['ports']['http'])
-        if restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/", rest_timeout=5)['status'] == 0:
+        if restful("http://" + ARGS_LIST['ora'] + ":" + str(API_PORT) + "/", rest_timeout=2)['status'] == 0:
             API_PROTOCOL = 'https'
             API_PORT = str(GLOBAL_CONFIG['ports']['https'])
         else:
@@ -570,6 +570,7 @@ def list_skus():
     return skunames
 
 def get_node_sku(nodeid):
+    # return name field of node SKU if available
     nodetype = ""
     sku = ""
     # get node info
@@ -610,7 +611,6 @@ def cancel_active_workflows(nodeid):
 
 def apply_obm_settings():
     # install OBM credentials via workflows
-    failed = []
     count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
         # greate graph for setting OBM credentials
@@ -636,8 +636,8 @@ def apply_obm_settings():
             print "**** OBM workflow failed to load!"
             return False
         count += 1
-    count = 0
     # Setup additional OBM settings for nodes that currently use RMM port (still same bmc username/password used)
+    count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
         # greate graph for setting OBM credentials for RMM
         payload = \
@@ -664,39 +664,40 @@ def apply_obm_settings():
             return False
         count += 1
 
-    # run each OBM credential workflow on each node until success
+    # run each OBM credential workflow on each node in parallel until success
     nodelist = node_select()
-    succeeded = True
+    nodestatus = {} # dictionary with node IDs and status of each node
     for node in nodelist:
+        nodestatus[node]= {"status": "pending", "instanceId": "", "sku": get_node_sku(node)}
+    for dummy in range(0, 60):
         for num in range(0, count):
-            status = ""
-            nodetype = get_node_sku(node)
-            if nodetype in ["Rinjin KP", "Hydra"]:
-                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
-            else:
-                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
-            # wait for existing workflow to complete
-            for dummy in range(0, 60):
-                result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
-                if result['status'] != 201:
-                    time.sleep(5)
+            for node in nodelist:
+                nodetype = nodestatus[node]['sku']
+                if nodetype in ["Rinjin KP", "Hydra"]:
+                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
                 else:
-                    break
-            # wait for OBM workflow to complete
-            counter = 0
-            for counter in range(0, 60):
-                time.sleep(5)
-                status = rackhdapi("/api/2.0/workflows/" + result['json']["instanceId"])['json']['_status']
-                if status != "running" and status != "pending":
-                    break
-            if status == "succeeded":
-                break
-            if counter == 60:
-                succeeded = False
-                failed.append(node)
-    if len(failed) > 0:
-        print "**** Nodes failed OBM settings:", failed
-    return succeeded
+                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
+                # try workflow
+                if nodestatus[node]['status'] == "pending":
+                    result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
+                    if result['status'] == 201:
+                        nodestatus[node] = {"status": "running", "instanceId": result['json']["instanceId"], "sku": nodetype}
+                # wait for OBM workflow to complete
+                if nodestatus[node]['status'] == "running":
+                    status = rackhdapi("/api/2.0/workflows/" + nodestatus[node]['instanceId'])['json']['_status']
+                    if status == "succeeded":
+                        nodestatus[node]['status'] = "succeeded"
+                    if status == "failed" or status == "timeout":
+                        nodestatus[node]['status'] = "pending"
+        if VERBOSITY > 4:
+            print "**** Nodes OBM status:\n", json.dumps(nodestatus, sort_keys=True, indent=4,)
+        if "pending" not in str(nodestatus) and "running" not in str(nodestatus):
+            # All OBM settings successful
+            return True
+        time.sleep(10)
+    # Failures occurred
+    print "**** Nodes OBM failed:\n", json.dumps(nodestatus, sort_keys=True, indent=4,)
+    return False
 
 def run_nose(nosepath):
     # this routine runs nosetests from wrapper using path spec 'nosepath'
