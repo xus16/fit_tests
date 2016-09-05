@@ -264,8 +264,8 @@ def get_auth_token():
 def rackhdapi(url_cmd, action='get', payload=[], timeout=None, headers={}):
     '''
     This routine will build URL for RackHD API, enable port, execute, and return data
-    Example: fit_common.rackhdapi('/api/current/nodes') - simple 'get' command
-    Example: fit_common.rackhdapi("/api/current/nodes/ID/dhcp/whitelist", action="post")
+    Example: rackhdapi('/api/current/nodes') - simple 'get' command
+    Example: rackhdapi("/api/current/nodes/ID/dhcp/whitelist", action="post")
 
     :param url_cmd: url command for monorail api
     :param action: rest action (get/put/post/delete)
@@ -569,6 +569,28 @@ def list_skus():
         skunames.append(item['name'])
     return skunames
 
+def get_node_sku(nodeid):
+    nodetype = ""
+    sku = ""
+    # get node info
+    mondata = rackhdapi("/api/2.0/nodes/" + nodeid)
+    if mondata['status'] == 200:
+        # get the sku id contained in the node
+        sku = mondata['json'].get("sku")
+        if sku:
+            skudata = rackhdapi(sku)
+            if skudata['status'] == 200:
+                nodetype = skudata['json'].get("name")
+            else:
+                if VERBOSITY >= 2:
+                    errmsg = "Error: SKU API failed {}, return code {} ".format(sku, skudata['status'])
+                    print errmsg
+        else:
+            if VERBOSITY >= 2:
+                errmsg = "Error: nodeid {} did not return a valid sku in get_rackhd_nodetype{}".format(nodeid,sku)
+                print errmsg
+    return nodetype
+
 def check_active_workflows(nodeid):
     # Return True if active workflows are found on node
     workflows = rackhdapi('/api/2.0/nodes/' + nodeid + '/workflows')['json']
@@ -588,15 +610,16 @@ def cancel_active_workflows(nodeid):
 
 def apply_obm_settings():
     # install OBM credentials via workflows
+    failed = []
     count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
-        # greate graph for setting OBM credentials with shared mgt port
+        # greate graph for setting OBM credentials
         payload = \
         {
-            "friendlyName": "SHARED.IPMI" + str(count),
-            "injectableName": 'Graph.Obm.Ipmi.CreateSettings.SHARED' + str(count),
+            "friendlyName": "IPMI" + str(count),
+            "injectableName": 'Graph.Obm.Ipmi.CreateSettings' + str(count),
             "options": {
-                "obm-ipmi-task": {
+                "obm-ipmi-task":{
                     "user": creds["username"],
                     "password": creds["password"]
                 }
@@ -608,7 +631,15 @@ def apply_obm_settings():
                 }
         ]
         }
-        rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        api_data = rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        if api_data['status'] != 201:
+            print "**** OBM workflow failed to load!"
+            return False
+        count += 1
+    count = 0
+    # Setup additional OBM settings for nodes that currently use RMM port (still same bmc username/password used)
+    for creds in GLOBAL_CONFIG['credentials']['bmc']:
+        # greate graph for setting OBM credentials for RMM
         payload = \
         {
             "friendlyName": "RMM.IPMI" + str(count),
@@ -627,42 +658,44 @@ def apply_obm_settings():
                 }
         ]
         }
-        rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        api_data = rackhdapi("/api/2.0/workflows/graphs", action="put", payload=payload)
+        if api_data['status'] != 201:
+            print "**** OBM workflow failed to load!"
+            return False
         count += 1
+
     # run each OBM credential workflow on each node until success
     nodelist = node_select()
     succeeded = True
-    failed = []
     for node in nodelist:
-        for mgmt in ["SHARED","RMM"]:
+        for num in range(0, count):
             status = ""
-            for num in range(0, count):
-                taskid = ""
-                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.' + mgmt + str(num)}
-                for dummy in range(0, 20):
-                    if check_active_workflows(node):
-                        time.sleep(10)
-                    else:
-                        break
+            nodetype = get_node_sku(node)
+            if nodetype in ["Rinjin KP", "Hydra"]:
+                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
+            else:
+                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
+            # wait for existing workflow to complete
+            for dummy in range(0, 60):
                 result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
-                if "instanceId" in result['json']:
-                    taskid = result['json']["instanceId"]
+                if result['status'] != 201:
+                    time.sleep(5)
                 else:
-                    succeeded = False
-                    print "*** Node failed applying OBM settings:", node
-                # wait for OBM workflow to complete
-                for dummy in range(0, 20):
-                    time.sleep(10)
-                    status = rackhdapi("/api/2.0/workflows/" + taskid)['json']
-                    if '_status' in status and status['_status'] != "running" and status != "pending":
-                        break
-            if '_status' in status and status['_status'] == "succeeded":
+                    break
+            # wait for OBM workflow to complete
+            counter = 0
+            for counter in range(0, 60):
+                time.sleep(5)
+                status = rackhdapi("/api/2.0/workflows/" + result['json']["instanceId"])['json']['_status']
+                if status != "running" and status != "pending":
+                    break
+            if status == "succeeded":
                 break
-            if status['_status'] == "failed" and mgmt == "RMM":
+            if counter == 60:
                 succeeded = False
                 failed.append(node)
     if len(failed) > 0:
-        print "**** Failed nodes:", failed
+        print "**** Nodes failed OBM settings:", failed
     return succeeded
 
 def run_nose(nosepath):
