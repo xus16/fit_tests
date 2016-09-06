@@ -286,18 +286,5 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
                 fit_common.time.sleep(10)
         return False
 
-    def test13_check_node_inventory(self):
-        # this test will verify node inventory by BMC MAC if specified in STACK_CONFIG
-        errorlist = []
-        #check OBM MAC addresses
-        if "nodes" in fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]:
-            nodecheck = fit_common.rackhdapi('/api/2.0/obms')['text']
-            for entry in fit_common.STACK_CONFIG[fit_common.ARGS_LIST['stack']]['nodes']:
-                if entry['bmcmac'] not in str(nodecheck):
-                    print '**** Missing node:' + entry['sku'] + "  BMC:" + entry['bmcmac']
-                    errorlist.append(entry['bmcmac'])
-            self.assertEqual(errorlist, [], "Missing nodes in catalog.")
-
-
 if __name__ == '__main__':
     fit_common.unittest.main()
