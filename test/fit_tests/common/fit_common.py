@@ -332,7 +332,7 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
         payload_print = json.dumps(rest_payload, sort_keys=True, indent=4,)
         if len(payload_print) > 4096:
             payload_print = payload_print[0:4096] + '\n...truncated...\n'
-        if VERBOSITY >= 9 and rest_payload != []:
+        if VERBOSITY >= 7 and rest_payload != []:
             print "restful: Payload =\n", payload_print
 
     rest_headers.update({"Content-Type": "application/json"})
@@ -684,11 +684,12 @@ def apply_obm_settings():
                         nodestatus[node] = {"status": "running", "instanceId": result['json']["instanceId"], "sku": nodetype}
                 # wait for OBM workflow to complete
                 if nodestatus[node]['status'] == "running":
-                    status = rackhdapi("/api/2.0/workflows/" + nodestatus[node]['instanceId'])['json']['_status']
-                    if status == "succeeded":
-                        nodestatus[node]['status'] = "succeeded"
-                    if status == "failed" or status == "timeout":
-                        nodestatus[node]['status'] = "pending"
+                    workflow = rackhdapi("/api/2.0/workflows/" + nodestatus[node]['instanceId'])
+                    if workflow['status'] == 200:
+                        if workflow['json']['_status'] == "succeeded":
+                            nodestatus[node]['status'] = "succeeded"
+                        if workflow['json']['_status'] == "failed" or workflow['json']['_status'] == "timeout":
+                            nodestatus[node]['status'] = "pending"
         if VERBOSITY > 4:
             print "**** Nodes OBM status:\n", json.dumps(nodestatus, sort_keys=True, indent=4,)
         if "pending" not in str(nodestatus) and "running" not in str(nodestatus):
