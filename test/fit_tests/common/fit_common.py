@@ -672,8 +672,9 @@ def apply_obm_settings_new():
     for dummy in range(0, 60):
         for num in range(0, count):
             for node in nodelist:
-                nodetype = nodestatus[node]['sku']
-                if nodetype in ["Rinjin KP", "Hydra"]:
+                skuid = rackhdapi('/api/2.0/nodes/' + node)['json'].get("sku")
+                skudata = rackhdapi(skuid)['text']
+                if "rmm.data.MAC" in skudata:
                     workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
                 else:
                     workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
@@ -768,8 +769,9 @@ def apply_obm_settings():
     for node in nodelist:
         for num in range(0, count):
             status = ""
-            nodetype = get_node_sku(node)
-            if nodetype in ["Rinjin KP", "Hydra"]:
+            skuid = rackhdapi('/api/2.0/nodes/' + node)['json'].get("sku")
+            skudata = rackhdapi(skuid)['text']
+            if "rmm.data.MAC" in skudata:
                 workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
             else:
                 workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
