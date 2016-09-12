@@ -774,35 +774,71 @@ def apply_obm_settings():
     for node in nodelist:
         for num in range(0, count):
             nodestatus = ""
+            wfstatus = ""
             skuid = rackhdapi('/api/2.0/nodes/' + node)['json'].get("sku")
-            skudata = rackhdapi(skuid)['text']
-            if "rmm.data.MAC" in skudata:
-                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
+            # Check is sku is empty
+            sku = skuid.rstrip("/api/2.0/skus/")
+            if sku:
+                skudata = rackhdapi(skuid)['text']
+                if "rmm.data.MAC" in skudata:
+                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
+                else:
+                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
             else:
-                workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
+                print "*** SKU not set for node ", node
+                nodestatus = "failed"
+                break
+
             # wait for existing workflow to complete
             for dummy in range(0, 60):
+                print "*** Using workflow: ", workflow
                 result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
                 if result['status'] != 201:
                     time.sleep(5)
+                elif dummy == 60:
+                    print "*** Workflow failed to start"
+                    wfstatus = "failed"
                 else:
                     break
-            # wait for OBM workflow to complete
-            counter = 0
-            for counter in range(0, 60):
-                time.sleep(10)
-                state_data = rackhdapi("/api/2.0/workflows/" + result['json']["instanceId"])
-                if state_data['status'] == 200:
-                    if "_status" in state_data['json']:
-                        nodestatus = state_data['json']['_status']
-                    else:
-                        nodestatus = state_data['json']['status']
-                    if nodestatus != "running" and nodestatus != "pending":
-                        break
-            if nodestatus == "succeeded":
-                break
-            if counter == 60:
-                failedlist.append(node)
+
+            if wfstatus != "failed":
+                # wait for OBM workflow to complete
+                counter = 0
+                for counter in range(0, 60):
+                    time.sleep(10)
+                    state_data = rackhdapi("/api/2.0/workflows/" + result['json']["instanceId"])
+                    if state_data['status'] == 200:
+                        if "_status" in state_data['json']:
+                            nodestatus = state_data['json']['_status']
+                        else:
+                            nodestatus = state_data['json']['status']
+                        if nodestatus != "running" and nodestatus != "pending":
+                            break
+                if nodestatus == "succeeded":
+                    print "*** Succeeded on workflow ", workflow
+                    break
+                if counter == 60:
+                    #print "Timed out status", nodestatus
+                    nodestatus = "failed"
+                    print "*** Node failed OBM settings - timeout:", node
+                    print "*** Failed on workflow ", workflow
+
+        # check final loop status for node workflow
+        if wfstatus == "failed" or nodestatus == "failed":
+            failedlist.append(node)
+
+    # cleanup failed nodes OBM settings on nodes, need to remove failed settings
+    for node in failedlist:
+        result = rackhdapi("/api/2.0/nodes/"  + node)
+        if result['status'] == 200:
+            if result['json']['obms']:
+                obms = result['json']['obms'][0]
+                obmref = obms.get('ref')
+                if obmref:
+                    result = rackhdapi(obmref, action="delete")
+                    if result['status'] != 204:
+                        print "*** Warning: failed to delete invalid OBM setting ", obmref
+
     if len(failedlist) > 0:
         print "**** Nodes failed OBM settings:", failedlist
         return False
