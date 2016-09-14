@@ -214,7 +214,7 @@ def scp_file_to_ora(src_file_name):
         remote_shell('cp ' + src_file_name + ' ~/' + src_file_name)
         return src_file_name
 
-    scp_target = 'onrack@{0}:'.format(ARGS_LIST["ora"])
+    scp_target = ARGS_LIST['usr'] + '@{0}:'.format(ARGS_LIST["ora"])
     cmd = 'scp -o StrictHostKeyChecking=no {0} {1}'.format(src_file_name, scp_target)
     if VERBOSITY >= 4:
         print "scp_file_to_ora: '{0}'".format(cmd)
