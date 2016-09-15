@@ -72,22 +72,15 @@ class rackhd20_api_pollers(fit_common.unittest.TestCase):
         mon_pollers = fit_common.rackhdapi("/api/2.0/pollers")['json']
         # iterate through poller IDs
         for poller_id in mon_pollers:
-            # check for up to 120 seconds before giving up (pollers go every 60 seconds)
-            max_cycles = 60
-            sleep_delay = 2
-            for dummy in range(0, max_cycles):
-                api_data = fit_common.rackhdapi("/api/2.0/pollers/" + poller_id['id'] +
-                                                   "/data")
-                if api_data['status'] == 200:
-                    break
-                fit_common.time.sleep(sleep_delay)
-            self.assertEqual(api_data['status'], 200, 'Poller timeout on ID ' + poller_id['id'])
+            api_data = fit_common.rackhdapi("/api/2.0/pollers/" + poller_id['id'] +  "/data")
+            self.assertIn(api_data['status'], [200, 204], 'Incorrect HTTP return code, expected 200 or 204, got:' + str(api_data['status']))
             # check for data in each poller type
-            for item in api_data['json']:
-                if 'sel' in item:
-                    self.assertGreater(len(item['sel']), 0, 'sel' + ' poller data empty')
-                if 'sdr' in item:
-                    self.assertGreater(len(item['sdr']), 0, 'sdr' + ' poller data empty')
+            if api_data['status'] == 200:
+                for item in api_data['json']:
+                    if 'sel' in item:
+                        self.assertGreater(len(item['sel']), 0, 'sel' + ' poller data empty')
+                    if 'sdr' in item:
+                        self.assertGreater(len(item['sdr']), 0, 'sdr' + ' poller data empty')
 
     def test_api_20_pollers_library(self):
         api_data = fit_common.rackhdapi('/api/2.0/pollers/library')
@@ -118,7 +111,7 @@ class rackhd20_api_pollers(fit_common.unittest.TestCase):
         api_data = fit_common.rackhdapi('/api/2.0/pollers')
         for item in api_data['json']:
             poll_data = fit_common.rackhdapi('/api/2.0/pollers/' + item['id'] + '/data/current')
-            self.assertEqual(poll_data['status'], 200, 'Incorrect HTTP return code, expected 200, got:' + str(poll_data['status']))
+            self.assertIn(poll_data['status'], [200, 204], 'Incorrect HTTP return code, expected 200 or 204, got:' + str(poll_data['status']))
             entrylist = ['host', 'node', 'timestamp']
             for record in poll_data['json']:
                 for entry in entrylist:
