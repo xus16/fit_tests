@@ -610,8 +610,8 @@ def cancel_active_workflows(nodeid):
        exitstatus = False
     return exitstatus
 
-def apply_obm_settings_new():
-    # Experimental routine to install OBM credentials via workflows
+def apply_obm_settings():
+    # New routine to install OBM credentials via workflows in parallel
     count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
         # greate graph for setting OBM credentials
@@ -681,14 +681,9 @@ def apply_obm_settings_new():
                     workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
                 # try workflow
                 if nodestatus[node]['status'] == "pending":
-                    for dummy in range(0, 60):
-                        # retry if other workflows active
-                        result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
-                        if result['status'] == 201:
-                            nodestatus[node].update({"status": "running", "instanceId": result['json']["instanceId"], "retry": 0})
-                            break
-                        else:
-                           time.sleep(5)
+                    result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
+                    if result['status'] == 201:
+                        nodestatus[node].update({"status": "running", "instanceId": result['json']["instanceId"]})
             for node in nodelist:
                 # check OBM workflow status
                 if nodestatus[node]['status'] == "running":
@@ -703,7 +698,16 @@ def apply_obm_settings_new():
                             nodestatus[node]['status'] = "succeeded"
                         if state in ["failed", "cancelled", "timeout"]:
                             nodestatus[node]['status'] = "pending"
-        if VERBOSITY > 4:
+                            # if the workflow left an invalid OBM, delete it
+                            result = rackhdapi("/api/2.0/nodes/" + node)
+                            if result['status'] == 200:
+                                if result['json']['obms']:
+                                    obms = result['json']['obms'][0]
+                                    obmref = obms.get('ref')
+                                    if obmref:
+                                        rackhdapi(obmref, action="delete")
+
+        if VERBOSITY >= 4:
             print "**** Node(s) OBM status:\n", json.dumps(nodestatus, sort_keys=True, indent=4,)
         if "pending" not in str(nodestatus) and "running" not in str(nodestatus):
             # All OBM settings successful
@@ -713,7 +717,7 @@ def apply_obm_settings_new():
     print "**** Node(s) OBM settings failed."
     return False
 
-def apply_obm_settings():
+def apply_obm_settings_old():
     # legacy routine to install OBM credentials via workflows
     count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
