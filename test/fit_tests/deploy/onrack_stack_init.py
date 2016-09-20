@@ -258,5 +258,26 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     errorlist.append(entry['bmcmac'])
             self.assertEqual(errorlist, [], "Missing nodes in catalog.")
 
+    def test12_update_config(self):
+        # this will add proxy settings to default OnRack Config file
+        monorail_config = fit_common.rackhdapi('/api/2.0/config')['json']
+        monorail_config.update(
+                    {"httpProxies": [{
+                        "localPath": "/mirror",
+                        "remotePath": "/",
+                        "server": fit_common.GLOBAL_CONFIG['repos']['mirror']
+                    }]}
+                    )
+        monorail_json = open('monorail.json', 'w')
+        monorail_json.write(fit_common.json.dumps(monorail_config, sort_keys=True, indent=4))
+        monorail_json.close()
+        fit_common.scp_file_to_ora('monorail.json')
+        self.assertEqual(fit_common.remote_shell('cp monorail.json /opt/onrack/etc/')['exitcode'], 0, "RackHD Config file failure.")
+        os.remove('monorail.json')
+        print "**** Restart services..."
+        fit_common.remote_shell("/opt/onrack/bin/monorail restart")
+        fit_common.time.sleep(10)
+        self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact Onrack.")
+
 if __name__ == '__main__':
     fit_common.unittest.main()
