@@ -16,7 +16,7 @@ import fit_common
 import pdu_lib
 
 # Locals
-MAX_CYCLES = 60
+MAX_CYCLES = 80
 
 class onrack_stack_init(fit_common.unittest.TestCase):
     # Temporary auth settings routine
@@ -236,7 +236,6 @@ class onrack_stack_init(fit_common.unittest.TestCase):
             for dummy in range(0, max_time):
                 good_poller_data = True
                 for index in  api_data['json']:
-
                     poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + index['id'] + "/data")
                     if poll_data['status'] != 200 or len(poll_data['json']) == 0:
                         good_poller_data = False
@@ -276,7 +275,7 @@ class onrack_stack_init(fit_common.unittest.TestCase):
         os.remove('monorail.json')
         print "**** Restart services..."
         fit_common.remote_shell("/opt/onrack/bin/monorail restart")
-        fit_common.time.sleep(10)
+        fit_common.countdown(30)
         self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact Onrack.")
 
 if __name__ == '__main__':
