@@ -587,18 +587,23 @@ def get_node_sku(nodeid):
                 if VERBOSITY >= 2:
                     errmsg = "Error: SKU API failed {}, return code {} ".format(sku, skudata['status'])
                     print errmsg
+                    return "unknown"
         else:
-            if VERBOSITY >= 2:
-                errmsg = "Error: nodeid {} did not return a valid sku in get_rackhd_nodetype{}".format(nodeid,sku)
-                print errmsg
+            return "unknown"
     return nodetype
 
 def check_active_workflows(nodeid):
     # Return True if active workflows are found on node
     workflows = rackhdapi('/api/2.0/nodes/' + nodeid + '/workflows')['json']
     for item in workflows:
-        if 'running' in item['_status'] or 'pending' in item['_status']:
-            return True
+        if '_status' in item:
+            if item['_status'] in ['running', 'pending']:
+                return True
+        if 'status' in item:
+            if item['status'] in ['running', 'pending']:
+                return True
+        else:
+            return False
     return False
 
 def cancel_active_workflows(nodeid):
@@ -666,24 +671,28 @@ def apply_obm_settings():
         count += 1
 
     # run each OBM credential workflow on each node in parallel until success
-    nodelist = node_select()
     nodestatus = {} # dictionary with node IDs and status of each node
-    for node in nodelist:
-        nodestatus[node]= {"status": "pending", "instanceId": "", "sku": get_node_sku(node), "retry": 0}
-    for dummy in range(0, 60):
+    for dummy in range(0, 30):
+        nodelist = node_select()
+        for node in nodelist:
+            if node not in nodestatus:
+                nodestatus[node] = {"status": "pending", "instanceId": "", "sku": get_node_sku(node), "retry": 0}
         for num in range(0, count):
             for node in nodelist:
-                skuid = rackhdapi('/api/2.0/nodes/' + node)['json'].get("sku")
-                skudata = rackhdapi(skuid)['text']
-                if "rmm.data.MAC" in skudata:
-                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
-                else:
-                    workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
                 # try workflow
                 if nodestatus[node]['status'] == "pending":
-                    result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
-                    if result['status'] == 201:
-                        nodestatus[node].update({"status": "running", "instanceId": result['json']["instanceId"]})
+                    skuid = rackhdapi('/api/2.0/nodes/' + node)['json'].get("sku")
+                    if skuid:
+                        if nodestatus[node]['sku'] == "unknown":
+                            nodestatus[node].update({"sku": get_node_sku(node)})
+                        skudata = rackhdapi(skuid)['text']
+                        if "rmm.data.MAC" in skudata:
+                            workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings.RMM' + str(num)}
+                        else:
+                            workflow = {"name": 'Graph.Obm.Ipmi.CreateSettings' + str(num)}
+                        result = rackhdapi("/api/2.0/nodes/"  + node + "/workflows", action="post", payload=workflow)
+                        if result['status'] == 201:
+                            nodestatus[node].update({"status": "running", "instanceId": result['json']["instanceId"]})
             for node in nodelist:
                 # check OBM workflow status
                 if nodestatus[node]['status'] == "running":
@@ -712,13 +721,13 @@ def apply_obm_settings():
         if "pending" not in str(nodestatus) and "running" not in str(nodestatus):
             # All OBM settings successful
             return True
-        time.sleep(10)
+        time.sleep(30)
     # Failures occurred
     print "**** Node(s) OBM settings failed."
     return False
 
-def apply_obm_settings_old():
-    # legacy routine to install OBM credentials via workflows
+def apply_obm_settings_seq():
+    # legacy routine to install OBM credentials via workflows sequentially one-at-a-time
     count = 0
     for creds in GLOBAL_CONFIG['credentials']['bmc']:
         # greate graph for setting OBM credentials
