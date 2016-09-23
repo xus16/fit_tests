@@ -363,7 +363,7 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
                                        verify=sslverify,
                                        )
         if rest_action == "binary-put":
-            rest_headers.update({"Content-Type": "application/octet-stream"})
+            rest_headers.update({"Content-Type": "application/x-www-form-urlencoded"})
             result_data = requests.put(url_command,
                                        data=rest_payload,
                                        headers=rest_headers,
@@ -386,7 +386,7 @@ def restful(url_command, rest_action='get', rest_payload=[], rest_timeout=None, 
                                         verify=sslverify
                                         )
         if rest_action == "binary-post":
-            rest_headers.update({"Content-Type": "application/octet-stream"})
+            rest_headers.update({"Content-Type": "application/x-www-form-urlencoded"})
             result_data = requests.post(url_command,
                                         data=rest_payload,
                                         headers=rest_headers,
@@ -711,10 +711,10 @@ def apply_obm_settings():
                             result = rackhdapi("/api/2.0/nodes/" + node)
                             if result['status'] == 200:
                                 if result['json']['obms']:
-                                    obms = result['json']['obms'][0]
-                                    obmref = obms.get('ref')
-                                    if obmref:
-                                        rackhdapi(obmref, action="delete")
+                                    for ref in result['json']['obms']:
+                                        obmref = ref.get('ref')
+                                        if obmref:
+                                            rackhdapi(obmref, action="delete")
 
         if VERBOSITY >= 4:
             print "**** Node(s) OBM status:\n", json.dumps(nodestatus, sort_keys=True, indent=4,)
