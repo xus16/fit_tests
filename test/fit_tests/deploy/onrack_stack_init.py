@@ -19,17 +19,27 @@ import pdu_lib
 MAX_CYCLES = 80
 
 class onrack_stack_init(fit_common.unittest.TestCase):
-    # Temporary auth settings routine
-    def test00_set_auth_user(self):
-        print '**** Installing default admin user'
-        fit_common.remote_shell('rm auth.json')
-        auth_json = open('auth.json', 'w')
-        auth_json.write('{"username":"' + fit_common.GLOBAL_CONFIG["api"]["admin_user"] + '", "password":"' + fit_common.GLOBAL_CONFIG["api"]["admin_pass"] + '", "role":"Administrator"}')
-        auth_json.close()
-        fit_common.scp_file_to_ora('auth.json')
-        rc = fit_common.remote_shell("curl -ks -X POST -H 'Content-Type:application/json' https://localhost:" + str(fit_common.GLOBAL_CONFIG['ports']['https']) + "/api/2.0/users -d @auth.json" )
-        if rc['exitcode'] != 0:
-            print "ALERT: Auth admin user not set! Please manually set the admin user account if https access is desired."
+
+    def test00_update_config(self):
+        # this will add proxy settings to default OnRack Config file
+        monorail_config = fit_common.rackhdapi('/api/2.0/config')['json']
+        monorail_config.update(
+                    {"httpProxies": [{
+                        "localPath": "/mirror",
+                        "remotePath": "/",
+                        "server": fit_common.GLOBAL_CONFIG['repos']['mirror']
+                    }]}
+                    )
+        monorail_json = open('monorail.json', 'w')
+        monorail_json.write(fit_common.json.dumps(monorail_config, sort_keys=True, indent=4))
+        monorail_json.close()
+        fit_common.scp_file_to_ora('monorail.json')
+        self.assertEqual(fit_common.remote_shell('cp monorail.json /opt/onrack/etc/')['exitcode'], 0, "RackHD Config file failure.")
+        os.remove('monorail.json')
+        print "**** Restart services..."
+        fit_common.remote_shell("/opt/onrack/bin/monorail restart")
+        fit_common.countdown(30)
+        self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact Onrack.")
 
     def test01_preload_default_sku(self):
         # Load default SKU for unsupported compute nodes
@@ -145,7 +155,7 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                 discovery_complete = True
 
                 for node in nodes_data['json']:
-                    if node['type'] == 'compute':
+                    if node['type'] == 'compute' and node.get('sku'):
                         self.assertIn('id', node, 'node does not contain id')
                         node_id = node['id']
                         # determine if there are any active worlflows. If so, discovery not completed
@@ -257,26 +267,6 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     errorlist.append(entry['bmcmac'])
             self.assertEqual(errorlist, [], "Missing nodes in catalog.")
 
-    def test12_update_config(self):
-        # this will add proxy settings to default OnRack Config file
-        monorail_config = fit_common.rackhdapi('/api/2.0/config')['json']
-        monorail_config.update(
-                    {"httpProxies": [{
-                        "localPath": "/mirror",
-                        "remotePath": "/",
-                        "server": fit_common.GLOBAL_CONFIG['repos']['mirror']
-                    }]}
-                    )
-        monorail_json = open('monorail.json', 'w')
-        monorail_json.write(fit_common.json.dumps(monorail_config, sort_keys=True, indent=4))
-        monorail_json.close()
-        fit_common.scp_file_to_ora('monorail.json')
-        self.assertEqual(fit_common.remote_shell('cp monorail.json /opt/onrack/etc/')['exitcode'], 0, "RackHD Config file failure.")
-        os.remove('monorail.json')
-        print "**** Restart services..."
-        fit_common.remote_shell("/opt/onrack/bin/monorail restart")
-        fit_common.countdown(30)
-        self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact Onrack.")
 
 if __name__ == '__main__':
     fit_common.unittest.main()
