@@ -44,7 +44,7 @@ class rackhd20_api_templates(fit_common.unittest.TestCase):
         api_data = fit_common.rackhdapi("/api/2.0/templates/metadata")
         self.assertEqual(api_data['status'], 200, "Was expecting code 200. Got " + str(api_data['status']))
         for item in api_data['json']:
-            lib_data = fit_common.rackhdapi("/api/2.0/templates/library/" + item['name'])
+            lib_data = fit_common.rackhdapi("/api/2.0/templates/metadata/" + item['name'])
             self.assertEqual(lib_data['status'], 200, "Was expecting code 200. Got " + str(lib_data['status']))
 
     def test_api_20_templates_library_ID_put_get_delete(self):
