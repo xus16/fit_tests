@@ -19,7 +19,12 @@ class rackhd_smoke_test(fit_common.unittest.TestCase):
         self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/os_ova_install.py'), 0, 'OS installer failed.')
 
     def test02_rackhd_installer(self):
-        self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_source_install.py'), 0, 'RackHD source installer failed.')
+        # sometimes it needs a retry
+        for dummy in range(1,3):
+            result = fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_source_install.py')
+            if result == 0:
+                break
+        self.assertEqual(result, 0, 'RackHD source installer failed.')
 
     def test03_initialize_stack(self):
         self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_stack_init.py'), 0, 'RackHD stack init failed.')
