@@ -21,6 +21,7 @@ if 'proxy' in fit_common.GLOBAL_CONFIG['repos'] and fit_common.GLOBAL_CONFIG['re
               "export https_proxy=" + fit_common.GLOBAL_CONFIG['repos']['proxy'] + ";"
 # collect nic names
 IFLIST = fit_common.remote_shell("ifconfig -s -a | tail -n +2 | awk \\\'{print \\\$1}\\\' |grep -v lo")['stdout'].split()
+INSTALLCODE= 0
 
 class rackhd_source_install(fit_common.unittest.TestCase):
     def test01_install_rackhd_dependencies(self):
@@ -76,11 +77,12 @@ class rackhd_source_install(fit_common.unittest.TestCase):
 
     def test03_run_ansible_installer(self):
         print "**** Run RackHD Ansible installer."
-        self.assertEqual(fit_common.remote_shell(ENVVARS +
+        INSTALLCODE = fit_common.remote_shell(ENVVARS +
                                                  "cd ~/rackhd/packer/ansible/;"
                                                  "ansible-playbook -i 'local,' -c local rackhd_package.yml",
                                                  timeout=600,
-                                                 )['exitcode'], 0, "Install failure.")
+                                                 )['exitcode']
+        self.assertIn(INSTALLCODE, [0,2], "RackHD Install failure.")
 
     def test04_install_network_config(self):
         print "**** Installing RackHD network config."
@@ -242,6 +244,15 @@ class rackhd_source_install(fit_common.unittest.TestCase):
         self.assertEqual(shell_data['exitcode'], 0, "Shell test failed after appliance reboot")
         fit_common.time.sleep(10)
         self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact RackHD.")
+
+    @fit_common.unittest.skipIf(INSTALLCODE, 0) # If initial install fails, run again
+    def test07_run_ansible_installer(self):
+        print "**** Run RackHD Ansible installer, again."
+        self.assertIn(fit_common.remote_shell(ENVVARS +
+                                                 "cd ~/rackhd/packer/ansible/;"
+                                                 "ansible-playbook -i 'local,' -c local rackhd_package.yml",
+                                                 timeout=600,
+                                                 )['exitcode'], [0], "RackHD Install failure.")
 
 if __name__ == '__main__':
     fit_common.unittest.main()
