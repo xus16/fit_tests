@@ -21,7 +21,6 @@ if 'proxy' in fit_common.GLOBAL_CONFIG['repos'] and fit_common.GLOBAL_CONFIG['re
               "export https_proxy=" + fit_common.GLOBAL_CONFIG['repos']['proxy'] + ";"
 # collect nic names
 IFLIST = fit_common.remote_shell("ifconfig -s -a | tail -n +2 | awk \\\'{print \\\$1}\\\' |grep -v lo")['stdout'].split()
-INSTALLCODE= 0
 
 class rackhd_source_install(fit_common.unittest.TestCase):
     def test01_install_rackhd_dependencies(self):
@@ -43,8 +42,12 @@ class rackhd_source_install(fit_common.unittest.TestCase):
         self.assertEqual(fit_common.remote_shell("git config --global http.proxy " + fit_common.GLOBAL_CONFIG['repos']['proxy']
                                                   )['exitcode'], 0, "Git proxy config failure.")
         # install Ansible
-        self.assertEqual(fit_common.remote_shell(ENVVARS + "cd ~;apt-get -y install ansible")['exitcode'], 0, "Install failure.")
-        self.assertEqual(fit_common.remote_shell(ENVVARS + "apt-get -y update")['exitcode'], 0, "update failure.")
+        self.assertEqual(fit_common.remote_shell(ENVVARS + "cd ~;apt-get -y install ansible")['exitcode'], 0, "Ansible Install failure.")
+        self.assertEqual(fit_common.remote_shell(ENVVARS + "apt-get -y update")['exitcode'], 0, "Ansible Update failure.")
+        # create startup files
+        self.assertEqual(fit_common.remote_shell(
+            "touch /etc/default/on-dhcp-proxy /etc/default/on-http /etc/default/on-tftp /etc/default/on-syslog /etc/default/on-taskgraph"
+            )['exitcode'], 0, "Startup files failure.")
 
     def test02_clone_rackhd_source(self):
         print "**** Cloning RackHD source."
@@ -77,12 +80,11 @@ class rackhd_source_install(fit_common.unittest.TestCase):
 
     def test03_run_ansible_installer(self):
         print "**** Run RackHD Ansible installer."
-        INSTALLCODE = fit_common.remote_shell(ENVVARS +
+        self.assertEqual(fit_common.remote_shell(ENVVARS +
                                                  "cd ~/rackhd/packer/ansible/;"
                                                  "ansible-playbook -i 'local,' -c local rackhd_package.yml",
                                                  timeout=600,
-                                                 )['exitcode']
-        self.assertIn(INSTALLCODE, [0,2], "RackHD Install failure.")
+                                                 )['exitcode'],0 ,"RackHD Install failure.")
 
     def test04_install_network_config(self):
         print "**** Installing RackHD network config."
@@ -225,14 +227,7 @@ class rackhd_source_install(fit_common.unittest.TestCase):
 
     def test06_reboot_and_check(self):
         print "**** Reboot and check installation."
-        # create startup files
-        self.assertEqual(fit_common.remote_shell(
-            "touch /etc/default/on-dhcp-proxy /etc/default/on-http /etc/default/on-tftp /etc/default/on-syslog /etc/default/on-taskgraph"
-            )['exitcode'], 0, "Install failure.")
-        # reboot
-        print "**** Rebooting appliance..."
         fit_common.remote_shell("shutdown -r now")
-        print "**** Waiting for login..."
         fit_common.countdown(30)
         shell_data = 0
         for dummy in range(0, 30):
@@ -244,15 +239,6 @@ class rackhd_source_install(fit_common.unittest.TestCase):
         self.assertEqual(shell_data['exitcode'], 0, "Shell test failed after appliance reboot")
         fit_common.time.sleep(10)
         self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact RackHD.")
-
-    @fit_common.unittest.skipIf(INSTALLCODE, 0) # If initial install fails, run again
-    def test07_run_ansible_installer(self):
-        print "**** Run RackHD Ansible installer, again."
-        self.assertIn(fit_common.remote_shell(ENVVARS +
-                                                 "cd ~/rackhd/packer/ansible/;"
-                                                 "ansible-playbook -i 'local,' -c local rackhd_package.yml",
-                                                 timeout=600,
-                                                 )['exitcode'], [0], "RackHD Install failure.")
 
 if __name__ == '__main__':
     fit_common.unittest.main()
