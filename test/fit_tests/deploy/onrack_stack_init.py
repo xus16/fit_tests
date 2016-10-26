@@ -16,30 +16,20 @@ import fit_common
 import pdu_lib
 
 # Locals
-MAX_CYCLES = 80
+MAX_CYCLES = 60
 
 class onrack_stack_init(fit_common.unittest.TestCase):
-
-    def test00_update_config(self):
-        # this will add proxy settings to default OnRack Config file
-        monorail_config = fit_common.rackhdapi('/api/2.0/config')['json']
-        monorail_config.update(
-                    {"httpProxies": [{
-                        "localPath": "/mirror",
-                        "remotePath": "/",
-                        "server": fit_common.GLOBAL_CONFIG['repos']['mirror']
-                    }]}
-                    )
-        monorail_json = open('monorail.json', 'w')
-        monorail_json.write(fit_common.json.dumps(monorail_config, sort_keys=True, indent=4))
-        monorail_json.close()
-        fit_common.scp_file_to_ora('monorail.json')
-        self.assertEqual(fit_common.remote_shell('cp monorail.json /opt/onrack/etc/')['exitcode'], 0, "RackHD Config file failure.")
-        os.remove('monorail.json')
-        print "**** Restart services..."
-        fit_common.remote_shell("/opt/onrack/bin/monorail restart")
-        fit_common.countdown(30)
-        self.assertEqual(fit_common.rackhdapi("/api/2.0/config")['status'], 200, "Unable to contact Onrack.")
+    # Temporary auth settings routine
+    def test00_set_auth_user(self):
+        print '**** Installing default admin user'
+        fit_common.remote_shell('rm auth.json')
+        auth_json = open('auth.json', 'w')
+        auth_json.write('{"username":"' + fit_common.GLOBAL_CONFIG["api"]["admin_user"] + '", "password":"' + fit_common.GLOBAL_CONFIG["api"]["admin_pass"] + '", "role":"Administrator"}')
+        auth_json.close()
+        fit_common.scp_file_to_ora('auth.json')
+        rc = fit_common.remote_shell("curl -ks -X POST -H 'Content-Type:application/json' https://localhost:" + str(fit_common.GLOBAL_CONFIG['ports']['https']) + "/api/2.0/users -d @auth.json" )
+        if rc['exitcode'] != 0:
+            print "ALERT: Auth admin user not set! Please manually set the admin user account if https access is desired."
 
     def test01_preload_default_sku(self):
         # Load default SKU for unsupported compute nodes
@@ -155,7 +145,7 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                 discovery_complete = True
 
                 for node in nodes_data['json']:
-                    if node['type'] == 'compute' and node.get('sku'):
+                    if node['type'] == 'compute':
                         self.assertIn('id', node, 'node does not contain id')
                         node_id = node['id']
                         # determine if there are any active worlflows. If so, discovery not completed
@@ -241,18 +231,28 @@ class onrack_stack_init(fit_common.unittest.TestCase):
         :return:  True  - Poller have data
                   False - Not all poller have data
         '''
+        poller_list = []
         api_data = fit_common.rackhdapi('/api/2.0/pollers')
         if api_data:
-            for dummy in range(0, max_time):
-                good_poller_data = True
-                for index in  api_data['json']:
-                    poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + index['id'] + "/data")
-                    if poll_data['status'] != 200 or len(poll_data['json']) == 0:
-                        good_poller_data = False
-                        break
-                if good_poller_data:
-                    return True
-                fit_common.time.sleep(10)
+            # set up a list of poller ids
+            for index in api_data['json']:
+                poller_list.append(index['id'])
+            if poller_list != []:
+                for dummy in range(0, max_time):
+                    # move backwards through the list allowing completed poller ids to be popped 
+                    # off the list
+                    for i in reversed(range(len(poller_list))):
+                        id = poller_list[i]
+                        poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + id + "/data/current")
+                        # Check if data current returned 200 and data in the poll, if so, remove from list
+                        if poll_data['status'] == 200 and len(poll_data['json']) != 0:
+                            poller_list.pop(i)
+                    if poller_list == []:
+                        # return when all pollers look good
+                        return True
+                    fit_common.time.sleep(10)
+        if poller_list != []:
+            print "Poller IDs with error or no data: {}".format(fit_common.json.dumps(poller_list, indent=4))
         return False
 
     def test11_check_node_inventory(self):
@@ -266,7 +266,6 @@ class onrack_stack_init(fit_common.unittest.TestCase):
                     print '**** Missing node:' + entry['sku'] + "  BMC:" + entry['bmcmac']
                     errorlist.append(entry['bmcmac'])
             self.assertEqual(errorlist, [], "Missing nodes in catalog.")
-
 
 if __name__ == '__main__':
     fit_common.unittest.main()
