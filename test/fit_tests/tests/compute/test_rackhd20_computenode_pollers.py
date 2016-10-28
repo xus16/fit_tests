@@ -3,7 +3,7 @@ Copyright 2016, EMC, Inc.
 
 Author(s):
 
-This test checks pollers under API 1.1
+This test checks pollers under API 2.0
 '''
 
 
@@ -41,7 +41,7 @@ def get_rackhd_nodetype(nodeid):
             else:
                 nodetype = skudata['json'].get("name")
         else:
-            print "Error: nodeid {} did not return a valid sku in get_rackhd_nodetype{}".format(nodeid, sku)
+            print "Error: nodeid {} did not return a valid sku in get_rackhd_nodetype {}".format(nodeid, sku)
     return nodetype
 
 from nose.plugins.attrib import attr
@@ -55,7 +55,7 @@ class rackhd20_computenode_pollers(fit_common.unittest.TestCase):
         errorlist = []
         poller_list = ['driveHealth', 'sel', 'chassis', 'selInformation', 'sdr', 'selEntries']
         if fit_common.VERBOSITY >= 2:
-            print "Expected Pollers for a Node: ".format(poller_list)
+            print "Expected Pollers for a Node: {}".format(poller_list)
         for node in NODELIST:
             if fit_common.VERBOSITY >= 2:
                 nodetype = get_rackhd_nodetype(node)
@@ -71,9 +71,9 @@ class rackhd20_computenode_pollers(fit_common.unittest.TestCase):
                     print "Poller list retreived", poller_dict
             else:
                 if list(set(poller_list) - set(poller_dict)):
-                    errorlist.append("Error: Node {0} Pollers not running {1}".format(node, list(set(poller_list) - set(poller_dict))))
+                    errorlist.append("Error: Node {} Pollers not running {}".format(node, list(set(poller_list) - set(poller_dict))))
                 if list(set(poller_dict) - set(poller_list)):
-                    errorlist.append("Error: Node {0} Unexpected Pollers running {1}".format(node, list(set(poller_dict) - set(poller_list))))
+                    errorlist.append("Error: Node {} Unexpected Pollers running {}".format(node, list(set(poller_dict) - set(poller_list))))
 
         if errorlist != []:
             if fit_common.VERBOSITY >= 2:
@@ -148,7 +148,7 @@ class rackhd20_computenode_pollers(fit_common.unittest.TestCase):
             self.assertEqual(errorlist, [], "Error reported.")
 
     def test_4_poller_default_cache(self):
-        msg = "Description: Check number of polls being kept for poller ID"
+        msg = "Description: Check number of polls being kept for poller ID, should not exceed 10"
         if fit_common.VERBOSITY >= 2:
             print "\t{0}".format(msg)
 
@@ -236,7 +236,7 @@ class rackhd20_computenode_pollers(fit_common.unittest.TestCase):
             self.assertEqual(errorlist, [], "Error reported.")
 
     def test_7_nodes_id_pollers(self):
-        msg = "Description: Display the poller updated-at per node."
+        msg = "Description: Display the poller last-finished per node."
         if fit_common.VERBOSITY >= 2:
             print "\t{0}".format(msg)
 
@@ -260,8 +260,9 @@ class rackhd20_computenode_pollers(fit_common.unittest.TestCase):
                 poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + poller_id)
                 if fit_common.VERBOSITY >= 2:
                     print "Poller: {}  ID: {} ".format(poller, str(poller_id))
-                    print "Created At: {}".format(fit_common.json.dumps(poll_data['json'].get('createdAt')))
-                    print "Updated At: {}".format(fit_common.json.dumps(poll_data['json'].get('updatedAt')))
+                    print "Last Started: {}".format(fit_common.json.dumps(poll_data['json'].get('lastStarted')))
+                    print "Last Finished: {}".format(fit_common.json.dumps(poll_data['json'].get('lastFinished')))
+                    print "Paused: {}".format(fit_common.json.dumps(poll_data['json'].get('paused')))
         if errorlist != []:
             if fit_common.VERBOSITY >= 2:
                 print "{}".format(fit_common.json.dumps(errorlist, indent=4))

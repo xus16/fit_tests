@@ -265,6 +265,7 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
             fit_common.time.sleep(30)
         return False
 
+
     def check_for_active_poller_data(self, max_time):
         '''
         Determine if all poller have data.
@@ -272,18 +273,28 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
         :return:  True  - Poller have data
                   False - Not all poller have data
         '''
+        poller_list = []
         api_data = fit_common.rackhdapi('/api/2.0/pollers')
         if api_data:
-            for dummy in range(0, max_time):
-                good_poller_data = True
-                for index in  api_data['json']:
-                    poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + index['id'] + "/data")
-                    if poll_data['status'] != 200 or len(poll_data['json']) == 0:
-                        good_poller_data = False
-                        break
-                if good_poller_data:
-                    return True
-                fit_common.time.sleep(10)
+            # set up a list of poller ids
+            for index in api_data['json']:
+                poller_list.append(index['id'])
+            if poller_list != []:
+                for dummy in range(0, max_time):
+                    # move backwards through the list allowing completed poller ids to be popped 
+                    # off the list
+                    for i in reversed(range(len(poller_list))):
+                        id = poller_list[i]
+                        poll_data = fit_common.rackhdapi("/api/2.0/pollers/" + id + "/data/current")
+                        # Check if data current returned 200 and data in the poll, if so, remove from list
+                        if poll_data['status'] == 200 and len(poll_data['json']) != 0:
+                            poller_list.pop(i)
+                    if poller_list == []:
+                        # return when all pollers look good
+                        return True
+                    fit_common.time.sleep(10)
+        if poller_list != []:
+            print "Poller IDs with error or no data: {}".format(fit_common.json.dumps(poller_list, indent=4))
         return False
 
 if __name__ == '__main__':
