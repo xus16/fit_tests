@@ -60,6 +60,8 @@
   "repos": {
     "_comment": "This is the list of repositories for each category",
     "proxy": "http://web.hwimo.lab.emc.com:3128",
+    "proxyhost": "web.hwimo.lab.emc.com",
+    "proxyport": "3128",
     "mirror": "http://mirrors.hwimo.lab.emc.com/mirrors",
     "os": {
       "esxi55": "http://172.31.128.1:9080/mirror/esxi/5.5/esxi",
@@ -71,7 +73,17 @@
     "install": {
       "template": "http://mirrors.hwimo.lab.emc.com/mirrors/ova/ora-ubuntu-1604.ova",
       "onrack": "http://onrack.hwimo.lab.emc.com/get/",
-      "rackhd": "https://github.com/rackhd/"
+      "rackhd": "https://github.com/rackhd/rackhd",
+      "on-core": "https://github.com/rackhd/on-core",
+      "on-dhcp-proxy": "https://github.com/rackhd/on-dhcp-proxy",
+      "on-http": "https://github.com/rackhd/on-http",
+      "on-statsd": "https://github.com/rackhd/on-statsd",
+      "on-syslog": "https://github.com/rackhd/on-syslog",
+      "on-tasks": "https://github.com/rackhd/on-tasks",
+      "on-taskgraph": "https://github.com/rackhd/on-taskgraph",
+      "on-tftp": "https://github.com/rackhd/on-tftp",
+      "on-tools": "https://github.com/rackhd/on-tools",
+      "on-wss": "https://github.com/rackhd/on-wss"
       },
     "skupack": [
       "https://github.com/RackHD/on-skupack"

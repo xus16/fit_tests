@@ -1,10 +1,19 @@
 '''
-Copyright 2015, EMC, Inc.
+Copyright 2016, EMC, Inc.
 
 Author(s):
 George Paulos
 
 This script initializes RackHD stack after install.
+    - loads SKU packs
+    - loads default SKU
+    - sets auth user
+    - restarts nodes for discovery
+    - discovers switches and/or PDUs if available
+    - checks node discovery
+    - assigns node OBM settings
+    - checks pollers for data
+
 '''
 
 
@@ -49,17 +58,23 @@ class rackhd_stack_init(fit_common.unittest.TestCase):
             break
         print "\n"
         # check SKU directory against source files
-        errorcount = 0
+        errorcount = ""
         skulist = fit_common.json.dumps(fit_common.rackhdapi("/api/2.0/skus")['json'])
         for subdir, dirs, files in os.walk('on-skupack'):
             for skus in dirs:
                 if skus not in ["debianstatic", ".git", "packagebuild", "tarballs"] and os.path.isfile('on-skupack/' + skus + '/config.json'):
-                    configfile = fit_common.json.loads(open("on-skupack/" + skus  + "/config.json").read())
-                    if configfile['name'] not in skulist:
-                        print "FAILURE - Missing SKU: " + configfile['name']
-                        errorcount += 1
+                    try:
+                        fit_common.json.loads(open("on-skupack/" + skus  + "/config.json").read())
+                    except:
+                        print "FAILURE - Corrupt SKU config: " + configfile['name']
+                        errorcount += "  Corrupt SKU config: " + configfile['name']
+                    else:
+                        configfile = fit_common.json.loads(open("on-skupack/" + skus  + "/config.json").read())
+                        if configfile['name'] not in skulist:
+                            print "FAILURE - Missing SKU: " + configfile['name']
+                            errorcount += "  Missing SKU: " + configfile['name']
             break
-        self.assertEqual(errorcount, 0, "SKU pack install error.")
+        self.assertEqual(errorcount, "", errorcount)
 
     def test02_preload_default_sku(self):
         # Load default SKU for unsupported compute nodes
