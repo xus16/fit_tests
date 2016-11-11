@@ -66,7 +66,7 @@ class rackhd_package_install(fit_common.unittest.TestCase):
         # clone base repo
         fit_common.remote_shell('rm -rf ~/rackhd')
         self.assertEqual(fit_common.remote_shell(ENVVARS + "git clone "
-                                                + fit_common.GLOBAL_CONFIG['repos']['install']['rackhd']
+                                                + fit_common.GLOBAL_CONFIG['repos']['install']['rackhd']['repo']
                                                 + " ~/rackhd"
                                                 )['exitcode'], 0, "RackHD git clone failure.")
 

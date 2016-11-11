@@ -104,17 +104,23 @@ class rackhd_source_install(fit_common.unittest.TestCase):
         # clone base repo
         fit_common.remote_shell('rm -rf ~/rackhd')
         self.assertEqual(fit_common.remote_shell(ENVVARS + "git clone "
-                                                + fit_common.GLOBAL_CONFIG['repos']['install']['rackhd']
+                                                + fit_common.GLOBAL_CONFIG['repos']['install']['rackhd']['repo']
                                                 + " ~/rackhd"
                                                 )['exitcode'], 0, "RackHD git clone failure.")
+        self.assertEqual(fit_common.remote_shell("cd ~/rackhd/" + ";git checkout "
+                                                 + fit_common.GLOBAL_CONFIG['repos']['install']['rackhd']['branch']
+                                                 )['exitcode'], 0, "Branch not found on RackHD repo.")
         # clone modules
         for repo in modules:
             self.assertEqual(fit_common.remote_shell(ENVVARS
-                                                    + "rm -rf ~rackhd/" + repo + ";"
+                                                    + "rm -rf ~/rackhd/" + repo + ";"
                                                     + "git clone "
-                                                    + fit_common.GLOBAL_CONFIG['repos']['install'][repo]
+                                                    + fit_common.GLOBAL_CONFIG['repos']['install'][repo]['repo']
                                                     + " ~/rackhd/" + repo
                                                      )['exitcode'], 0, "RackHD git clone module failure:" + repo)
+            self.assertEqual(fit_common.remote_shell("cd ~/rackhd/" + repo + ";git checkout "
+                                                     + fit_common.GLOBAL_CONFIG['repos']['install'][repo]['branch']
+                                                     )['exitcode'], 0, "Branch not found on module:" + repo)
 
     def test03_run_ansible_installer(self):
         print "**** Run RackHD Ansible installer."
