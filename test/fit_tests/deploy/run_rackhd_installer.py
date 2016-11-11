@@ -19,7 +19,7 @@ class rackhd_installer(fit_common.unittest.TestCase):
         self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/os_ova_install.py'), 0, 'OS installer failed.')
 
     def test02_rackhd_installer(self):
-        self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_source_install.py'), 0, 'RackHD source installer failed.')
+        self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_package_install.py'), 0, 'RackHD package installer failed.')
 
     def test03_initialize_stack(self):
         self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_stack_init.py'), 0, 'RackHD stack init failed.')
