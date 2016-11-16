@@ -5,7 +5,9 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-
+    config.vm.provider 'virtualbox' do |vb|
+      vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
+    end
     # RackHD SERVER (RackHD installed and running)
     config.vm.define "dev" do |target|
         target.vm.box = "bento/ubuntu-16.04"
@@ -19,14 +21,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.ssh.password = "vagrant"
 
         target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
-        target.vm.network "forwarded_port", guest: 8080, host: 9090
-        target.vm.network "forwarded_port", guest: 5672, host: 9091
-        target.vm.network "forwarded_port", guest: 9080, host: 9092
-        target.vm.network "forwarded_port", guest: 8443, host: 9093
-
         target.ssh.forward_agent = true
 
         target.vm.provision "shell", inline: <<-SHELL
+            git config --global http.sslVerify false
             git clone https://github.com/onrack2/fit_tests fit_tests
             sudo apt-get -y install python-pip
             sudo apt-get -y install virtualenv
@@ -48,13 +46,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
         target.ssh.username = "vagrant"
         target.ssh.password = "vagrant"
+
         target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
-        target.vm.network "forwarded_port", guest: 8080, host: 9090
-        target.vm.network "forwarded_port", guest: 5672, host: 9091
-        target.vm.network "forwarded_port", guest: 9080, host: 9092
-        target.vm.network "forwarded_port", guest: 8443, host: 9093
         target.ssh.forward_agent = true
+
         target.vm.provision "shell", inline: <<-SHELL
+            git config --global http.sslVerify false
             git clone https://github.com/onrack2/fit_tests fit_tests
         SHELL
     end
