@@ -12,5 +12,5 @@
   "vagrant":{
     "ora": "localhost",
     "type": "vagrant"
-  },
+  }
 }
