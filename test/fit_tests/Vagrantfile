@@ -8,61 +8,38 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provider 'virtualbox' do |vb|
       vb.customize ['modifyvm', :id, '--cableconnected1', 'on']
     end
-    # RackHD SERVER (RackHD server installed and running)
-    config.vm.define "dev" do |target|
-        target.vm.box = "bento/ubuntu-16.04"
-        target.vm.box_download_insecure = true
-        target.vm.provider "virtualbox" do |v|
-            v.memory = 4096
-            v.cpus = 4
-            v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
-        end
-        target.ssh.username = "vagrant"
-        target.ssh.password = "vagrant"
 
-        target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
-        target.ssh.forward_agent = true
-
-        target.vm.provision "shell", inline: <<-SHELL
-            git config --global http.sslVerify false
-            git clone https://github.com/onrack2/fit_tests fit_tests
-            sudo apt-get -y install python-pip
-            sudo apt-get -y install virtualenv
-            virtualenv .venv
-            source .venv/bin/activate
-            pip install -r fit_tests/requirements.txt
-            cd fit_tests/test/fit_tests
-            python run_tests.py -test deploy/rackhd_source_install.py -config config.vagrant -v 9
-        SHELL
-    end
-
-    # RackHD Smoke Test (run RackHD installer and smoke test)
-    config.vm.define "smoke" do |target|
-        target.vm.box = "bento/ubuntu-16.04"
-        target.vm.box_download_insecure = true
-        target.vm.provider "virtualbox" do |v|
-            v.memory = 4096
-            v.cpus = 4
-            v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
-        end
-        target.ssh.username = "vagrant"
-        target.ssh.password = "vagrant"
-
-        target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
-        target.ssh.forward_agent = true
-
+    # Virtual HW SERVER (Virtual Quanta D51 node)
+    config.vm.define "quanta_d51" do |d51|
         d51.vm.box = "InfraSIM/quanta_d51"
-        d51.vm.box_download_insecure = true
         d51.vm.provider "virtualbox" do |v|
-            v.gui = true
             v.memory = 4096
             v.cpus = 4
             v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
         end
         d51.vm.network "private_network", virtualbox__intnet: "closednet", auto_config: false, nic_type: "82540EM"
+        d51.vm.provision "shell", inline: <<-SHELL
+            sudo ifconfig eth1 up
+            sleep 2
+            sudo udhcpc -i br1
+        SHELL
+    end
+
+    # RackHD Smoke Test (Run RackHD installer and smoke test)
+    config.vm.define "smoke" do |target|
+        target.vm.box = "bento/ubuntu-16.04"
+        target.vm.provider "virtualbox" do |v|
+            v.memory = 4096
+            v.cpus = 4
+            v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
+        end
+        target.ssh.username = "vagrant"
+        target.ssh.password = "vagrant"
+
+        target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
+        target.ssh.forward_agent = true
 
         target.vm.provision "shell", inline: <<-SHELL
-            git config --global http.sslVerify false
             git clone https://github.com/onrack2/fit_tests fit_tests
             sudo apt-get -y install python-pip
             sudo apt-get -y install virtualenv
@@ -71,24 +48,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             pip install -r fit_tests/requirements.txt
             cd fit_tests/test/fit_tests
             python run_tests.py -test deploy/rackhd_source_install.py -config config.vagrant -v 9
-        SHELL
-
-        d51.vm.provision "shell", inline: <<-SHELL
-            sudo ifconfig eth1 up
-            sleep 2
-            sudo udhcpc -i br1
-        SHELL
-
-        target.vm.provision "shell", inline: <<-SHELL
-            cd fit_tests/test/fit_tests
             python run_tests.py -stack vagrant -test deploy/rackhd_stack_init.py -v 9
             python run_tests.py -test tests/
         SHELL
     end
 
-
-    # RackHD SERVER TEMPLATE (RackHD downloaded but not installed)
-    config.vm.define "template" do |target|
+    # RackHD SERVER (RackHD server installed and running)
+    config.vm.define "dev", autostart: false do |target|
         target.vm.box = "bento/ubuntu-16.04"
         target.vm.provider "virtualbox" do |v|
             v.memory = 4096
@@ -102,27 +68,35 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.ssh.forward_agent = true
 
         target.vm.provision "shell", inline: <<-SHELL
-            git config --global http.sslVerify false
             git clone https://github.com/onrack2/fit_tests fit_tests
+            sudo apt-get -y install python-pip
+            sudo apt-get -y install virtualenv
+            virtualenv .venv
+            source .venv/bin/activate
+            pip install -r fit_tests/requirements.txt
+            cd fit_tests/test/fit_tests
+            python run_tests.py -test deploy/rackhd_source_install.py -config config.vagrant -v 9
         SHELL
     end
 
-    # Virtual HW SERVER (Virtual Quanta D51 node)
-    config.vm.define "quanta_d51" do |d51|
-        d51.vm.box = "InfraSIM/quanta_d51"
-        d51.vm.box_download_insecure = true
-        d51.vm.provider "virtualbox" do |v|
-            v.gui = true
+    # RackHD SERVER TEMPLATE (RackHD downloaded but not installed)
+    config.vm.define "template", autostart: false do |target|
+        target.vm.box = "bento/ubuntu-16.04"
+        target.vm.provider "virtualbox" do |v|
             v.memory = 4096
             v.cpus = 4
             v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
         end
-        d51.vm.network "private_network", virtualbox__intnet: "closednet", auto_config: false, nic_type: "82540EM"
-        d51.vm.provision "shell", inline: <<-SHELL
-            sudo ifconfig eth1 up
-            sleep 2
-            sudo udhcpc -i br1
+        target.ssh.username = "vagrant"
+        target.ssh.password = "vagrant"
+
+        target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
+        target.ssh.forward_agent = true
+
+        target.vm.provision "shell", inline: <<-SHELL
+            git clone https://github.com/onrack2/fit_tests fit_tests
         SHELL
     end
+
 
 end
