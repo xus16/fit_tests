@@ -118,10 +118,11 @@ For example, to run the test 'test_rackhd11_api_catalogs' in script 'tests/rackh
 The RackHD 'Vagrant' configuration is a convenient simulated hardware environment with one management server and one node.
 It can be run on a Windows or Ubuntu Linux workstation for testing and development.
 
-Install Git, Oracle VirtualBox. and HashiCorp Vagrant onto a Windows or Linux host machine or workstation
+Install Git, Oracle VirtualBox. and HashiCorp Vagrant from the following links onto a Windows or Linux host machine or workstation
 
-https://www.virtualbox.org/wiki/Downloads
-https://www.vagrantup.com/downloads.html
+    https://git-scm.com/downloads
+    https://www.virtualbox.org/wiki/Downloads
+    https://www.vagrantup.com/downloads.html
 
 Open a shell or command prompt on host.
 
@@ -136,11 +137,16 @@ This will load a virtual RackHD server and one virtual Quanta D51 node into Virt
 Use the following commands to initialize the server and run a Smoke Test:
 
     vagrant ssh dev
+    sudo bash
     source .venv/bin/activate
-    cd RackHD/test/fit_tests
+    cd fit_tests/test/fit_tests
     python run_tests.py -stack vagrant -test deploy/rackhd_stack_init.py -v 4
-    python run_tests.py -test tests/
+    python run_tests.py -test tests -group smoke
 
+(On Windows, use Putty to log into the server using IP 127.0.0.1, port 2222, and credentials vagrant/vagrant)
+
+Note that any previously installed RackHD Vagrant boxes will prevent a new instance from running.
+Please remove any old RackHD VMs prior to executing this routine.
 
 ## Test conventions
 
@@ -153,5 +159,4 @@ The setUp and tearDown methods are useful ways to setup and clean out test-speci
 - If scripts need to run in a sequence, use a wrapper script and number the method names.
 - Tests that need specific conditions should be run in a single script and utilize 'setUp' and 'tearDown' methods.
 - Tests should not have any direct references to IP addresses or hostnames. Use GLOBAL_CONFIG or STACK_CONFIG for hardware or resource references.
-
 
