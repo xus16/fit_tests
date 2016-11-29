@@ -68,11 +68,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.ssh.password = "vagrant"
         target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
         target.ssh.forward_agent = true
+        config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh"
         target.vm.network "forwarded_port", guest: 8080, host: 8080
-        target.vm.provision "shell", inline: <<-SHELL
-            git clone https://github.com/onrack2/fit_tests fit_tests
-        SHELL
     end
-
 
 end
