@@ -12,5 +12,9 @@
   "vagrant":{
     "ora": "localhost",
     "type": "vagrant"
+  },
+  "vagrant_remote": {
+    "ora": "127.0.0.1",
+    "type": "vagrant"
   }
 }
