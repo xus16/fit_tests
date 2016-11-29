@@ -53,7 +53,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         SHELL
     end
 
-    # RackHD SERVER TEMPLATE (RackHD installer downloaded but not installed)
+    # RackHD SERVER TEMPLATE (To be used by Jenkins)
     config.vm.define "template", autostart: false do |target|
         target.vm.box = "bento/ubuntu-16.04"
         target.vm.provider "virtualbox" do |v|
@@ -65,7 +65,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         target.ssh.password = "vagrant"
         target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
         target.ssh.forward_agent = true
-        target.vm.network "forwarded_port", guest: 8080, host: 8080
+        target.vm.network "forwarded_port", guest: 8080, host: 9080
         target.vm.network "forwarded_port", guest: 443, host: 443
         target.vm.provision "shell", inline: <<-SHELL
             git clone https://github.com/onrack2/fit_tests fit_tests
