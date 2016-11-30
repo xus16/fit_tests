@@ -59,19 +59,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     # RackHD SERVER TEMPLATE (To be used by Jenkins)
-    config.vm.define "template", autostart: false do |target|
-        target.vm.box = "bento/ubuntu-16.04"
-        target.vm.provider "virtualbox" do |v|
+    config.vm.define "template", autostart: false do |template|
+        template.vm.box = "bento/ubuntu-16.04"
+        template.vm.provider "virtualbox" do |v|
             v.memory = 4096
             v.cpus = 4
             v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
         end
-        target.ssh.username = "vagrant"
-        target.ssh.password = "vagrant"
-        target.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
-        target.ssh.forward_agent = true
-        config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh"
-        target.vm.network "forwarded_port", guest: 8080, host: 8080
+        template.ssh.username = "vagrant"
+        template.ssh.password = "vagrant"
+        template.vm.network "private_network", ip: "172.31.128.1", virtualbox__intnet: "closednet"
+        template.ssh.forward_agent = true
+        template.vm.network "forwarded_port", guest: 8080, host: 8080
+        template.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh"
     end
 
 end
