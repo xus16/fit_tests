@@ -48,6 +48,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             v.cpus = 4
             v.customize ["modifyvm", :id, "--nicpromisc2", "allow-all", "--ioapic", "on"]
         end
+        d51.ssh.username = "vagrant"
+        d51.ssh.password = "vagrant"
         d51.vm.network "private_network", virtualbox__intnet: "closednet", auto_config: false, nic_type: "82540EM"
         d51.vm.provision "shell", inline: <<-SHELL
             sudo ifconfig eth1 up
