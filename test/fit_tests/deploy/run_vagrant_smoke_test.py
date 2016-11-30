@@ -4,7 +4,7 @@ Copyright 2016, EMC, Inc.
 Author(s):
 George Paulos
 
-This script installs RackHD via source to Vagrant/Virtualbox deployment
+This script installs RackHD via source to Vagrant/Virtualbox deployment and runs smoke test
 This script performs the following functions:
     - clears out orphan VMs from Virtualbox
     - installs OS template
@@ -12,6 +12,7 @@ This script performs the following functions:
     - installs node simulator
     - installs SKU packs
     - runs stack init
+    - runs smoke test
 
 NOTES:
     This script requires Vagrant and Virtualbox installed on the Linux test host.
@@ -50,6 +51,11 @@ class vagrant_installer(fit_common.unittest.TestCase):
 
     def test05_initialize_stack(self):
         self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/deploy/rackhd_stack_init.py'), 0, 'RackHD stack init failed.')
+
+    def test06_rackhd_smoke_test(self):
+        # set test group to 'smoke'
+        fit_common.ARGS_LIST['group'] = "smoke"
+        self.assertEqual(fit_common.run_nose(fit_common.TEST_PATH + '/tests'), 0, 'RackHD Smoke Test failed.')
 
 if __name__ == '__main__':
     fit_common.unittest.main()
